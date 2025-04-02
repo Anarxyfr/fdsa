@@ -3,7 +3,7 @@ import requests
 import threading
 
 WEBHOOK_URL = "https://discord.com/api/webhooks/1356810627909419079/5L26qDamgl753mBQL873Mq982SK6K4_2HH-mMmrfkOASId1GXyup-vVKOXbbDw6OC2iO"
-BOT_TOKEN = "YOUR_BOT_TOKEN_HERE"  # Replace with your bot token
+BOT_TOKEN = "MTM1NjgwNzIyMTgxOTk5ODIzOQ.GugL7a.B6pyc-ehNYTI7crXr8V433riRTvLd7tNg8AQtg"  # Replace with your bot token
 PEER_NAME = "Peer1"
 OTHER_PEER = "Peer2"
 
