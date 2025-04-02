@@ -1,43 +1,38 @@
+import discord
 import requests
-import time
+import threading
 
 WEBHOOK_URL = "https://discord.com/api/webhooks/1356810627909419079/5L26qDamgl753mBQL873Mq982SK6K4_2HH-mMmrfkOASId1GXyup-vVKOXbbDw6OC2iO"
-LAST_MESSAGE_ID = None
+BOT_TOKEN = "YOUR_BOT_TOKEN_HERE"  # Replace with your bot token
+PEER_NAME = "Peer1"
+OTHER_PEER = "Peer2"
 
-def send_message(user, message):
-    data = {
-        "content": f"**{user}**: {message}"
-    }
-    response = requests.post(WEBHOOK_URL, json=data)
-    if response.status_code != 204:
-        print(f"Failed to send message. Status code: {response.status_code}")
+intents = discord.Intents.default()
+intents.messages = True
+intents.message_content = True
 
-def get_messages():
-    global LAST_MESSAGE_ID
-    response = requests.get(WEBHOOK_URL + "?limit=1")
-    
-    if response.status_code == 200:
-        messages = response.json()
-        if messages and messages[0]['id'] != LAST_MESSAGE_ID:
-            LAST_MESSAGE_ID = messages[0]['id']
-            content = messages[0]['content']
-            if not content.startswith("**User1**:"):  # Don't show your own messages
-                print(f"\nReceived: {content}\nYou: ", end="")
-    else:
-        print(f"Failed to get messages. Status code: {response.status_code}")
+class ChatClient(discord.Client):
+    async def on_ready(self):
+        print(f"{PEER_NAME} ready! Type messages below:")
 
-def main():
-    print("Simple P2P Chat using Discord Webhook")
-    print("You are User1. Type 'exit' to quit.\n")
-    
-    while True:
-        message = input("You: ")
-        if message.lower() == 'exit':
-            break
+    async def on_message(self, message):
+        if message.author == self.user or not message.webhook_id:
+            return
         
-        send_message("User1", message)
-        time.sleep(1)  # Wait a moment before checking for replies
-        get_messages()
+        content = message.content
+        if content.startswith(f"[{OTHER_PEER}]"):
+            print(f"\n{OTHER_PEER}: {content[len(OTHER_PEER)+2:]}\n> ", end='')
+
+def send_messages():
+    while True:
+        message = input("> ")
+        requests.post(WEBHOOK_URL, json={"content": f"[{PEER_NAME}] {message}"})
+
+def run_bot():
+    client = ChatClient(intents=intents)
+    client.run(BOT_TOKEN)
 
 if __name__ == "__main__":
-    main()
+    bot_thread = threading.Thread(target=run_bot, daemon=True)
+    bot_thread.start()
+    send_messages()
