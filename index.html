@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Auto Play MP3</title>
+</head>
+<body>
+  <audio id="audio" src="https://github.com/Anarxyfr/fdsa/raw/refs/heads/main/4b96811d-1725-4694-bf60-c3f3e54b5f94.mp3" autoplay></audio>
+
+  <script>
+    const audio = document.getElementById("audio");
+    audio.volume = 1.0; // Set to full volume (1.0 is max)
+    audio.play().catch(err => {
+      console.error("Autoplay failed:", err);
+    });
+  </script>
+</body>
+</html>
