@@ -72,14 +72,6 @@ Start-Job -ScriptBlock {
 }
 
 Start-Job -ScriptBlock {
-    for ($i = 0; $i -lt 100; $i++) {
-        [console]::beep(
-            (Get-Random -Minimum 100 -Maximum 3000),
-            (Get-Random -Minimum 50 -Maximum 200)
-    }
-}
-
-Start-Job -ScriptBlock {
     $f = New-Object Windows.Forms.Form
     $f.Text = "x"
     $f.BackColor = 'Red'
