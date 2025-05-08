@@ -20,10 +20,11 @@ $player.Play()
 Start-Job -ScriptBlock {
     $keys = @("^{%}{LEFT}","^{%}{RIGHT}","^{%}{UP}","^{%}{DOWN}")
     while ($true) {
-        [System.Windows.Forms.SendKeys]::SendWait($keys | Get-Random)
+        [System.Windows.Forms.SendKeys]::SendWait(($keys | Get-Random))
         Start-Sleep -Seconds 3
     }
 }
+
 
 # Spam Edge with search typing
 Start-Job -ScriptBlock {
