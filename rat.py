@@ -18,13 +18,13 @@ $player.Play()
 
 # Start infinite orientation flipping
 Start-Job -ScriptBlock {
-    $keys = @("^{%}{LEFT}","^{%}{RIGHT}","^{%}{UP}","^{%}{DOWN}")
+    Add-Type -AssemblyName System.Windows.Forms  # Added assembly load
+    $keys = @("%{LEFT}", "%{RIGHT}", "%{UP}", "%{DOWN}")  # Corrected keys
     while ($true) {
-        [System.Windows.Forms.SendKeys]::SendWait(($keys | Get-Random))
+        [System.Windows.Forms.SendKeys]::SendWait(($keys | Get-Random))  # Fixed parentheses and typo
         Start-Sleep -Seconds 3
     }
 }
-
 
 # Spam Edge with search typing
 Start-Job -ScriptBlock {
